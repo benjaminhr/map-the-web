@@ -8,16 +8,23 @@ import urllib.parse
 # Stop ctrl-c, program quit errors
 signal.signal(signal.SIGINT, lambda x,y: sys.exit(0))
 
-class Search:
-  queue = []
-  visited_urls = []
+from threading import RLock, Thread, get_ident
+lock = RLock()
+visited_urls = []
+urls_to_visit = []
 
+class Search:
   def start(self, start_url):
+    global urls_to_visit
+
     initial_url = self.validate_url(start_url)
     html = self.get_html(initial_url)
     links = self.get_links(html)
 
-    self.queue.extend(links)
+    lock.acquire()
+    urls_to_visit.extend(links)
+    lock.release()
+
     self.run()
 
   def validate_url(self, url):
@@ -31,6 +38,7 @@ class Search:
       req_time = resp.elapsed.total_seconds()
       html = resp.text
 
+      print("FROM: " + str(get_ident()))
       print(url + ": " + str(req_time))
       return html    
     except Exception as e:
@@ -52,16 +60,45 @@ class Search:
     return urllib.parse.urljoin(url, urllib.parse.urlparse(url).path)
 
   def run(self):
-    for url in self.queue:
-      if url not in self.visited_urls:
-        self.visited_urls.append(url) 
-        self.queue.remove(url)
+    global urls_to_visit
+    global visited_urls
+
+    for url in urls_to_visit:
+      if url not in visited_urls:
+        lock.acquire()
+        visited_urls.append(url) 
+        urls_to_visit.remove(url)
+        lock.release()
 
         html = self.get_html(url)
         if html != "failed":
           links = self.get_links(html)
-          self.queue.extend(links)
+          
+          lock.acquire()
+          urls_to_visit.extend(links)
+          lock.release()
 
-initial_url = sys.argv[1]
-run1 = Search()
-run1.start(initial_url)
+urls = [
+  "https://google.com",
+  "https://fb.com",
+  "https://youtube.com",
+  "https://apple.com",
+  "https://bbc.co.uk",
+  "https://repl.it",
+  "https://example.com",
+  "https://news.ycombinator.com",
+]
+threads = []
+for i in range(0, 8):
+  search = Search() 
+  thread = Thread(target=search.start, args=(urls[i],))
+  threads.append(thread)
+  threads[i].start()
+
+for thread in threads:
+  thread.join()
+
+
+# initial_url = sys.argv[1]
+# run1 = Search()
+# run1.start(initial_url)
