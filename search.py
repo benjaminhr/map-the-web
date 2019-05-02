@@ -42,7 +42,9 @@ class Search:
   
     for link in soup.findAll('a', href=True):
       stripped_link = self.remove_queryparams(link.get('href')) 
-      links.append(stripped_link)
+      validated_url = self.validate_url(stripped_link)
+
+      links.append(validated_url)
 
     return links
 
@@ -60,5 +62,6 @@ class Search:
           links = self.get_links(html)
           self.queue.extend(links)
 
+initial_url = sys.argv[1]
 run1 = Search()
-run1.start('https://bbc.co.uk')
+run1.start(initial_url)
