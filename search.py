@@ -15,17 +15,9 @@ urls_to_visit = []
 
 class Search:
   def start(self, start_url):
-    global urls_to_visit
-
     initial_url = self.validate_url(start_url)
-    html = self.get_html(initial_url)
-    links = self.get_links(html)
-
-    lock.acquire()
-    urls_to_visit.extend(links)
-    lock.release()
-
-    self.run()
+    self.run(initial_url, initial=True)
+    self.loop()
 
   def validate_url(self, url):
     if (not url.lower().startswith(('http', 'https'))):
@@ -44,12 +36,15 @@ class Search:
     except Exception as e:
       return 'failed'
         
-  def get_links(self, html):
+  def get_links(self, html, parent):
     soup = bs4.BeautifulSoup(html, features="html.parser")
     links = []
   
     for link in soup.findAll('a', href=True):
       stripped_link = self.remove_queryparams(link.get('href')) 
+      if stripped_link[0] == '/':
+        stripped_link = parent + stripped_link
+
       validated_url = self.validate_url(stripped_link)
 
       links.append(validated_url)
@@ -58,25 +53,40 @@ class Search:
 
   def remove_queryparams(self, url):
     return urllib.parse.urljoin(url, urllib.parse.urlparse(url).path)
+  
+  def run(self, url, initial=False):
+    global urls_to_visit
+    global visited_urls
 
-  def run(self):
+    if initial:
+      url = {
+        "url": url,
+        "source": url
+      }
+
+    html = self.get_html(url["url"])
+
+    if html != "failed":      
+      links = self.get_links(html, url["source"])
+      links_dict = [{ 
+        "url": link, 
+        "source": link
+      } for link in links]
+
+      lock.acquire()  
+      visited_urls.append(url)
+      url in urls_to_visit and urls_to_visit.remove(url) 
+      urls_to_visit.extend(links_dict)
+      lock.release()
+
+  def loop(self):
     global urls_to_visit
     global visited_urls
 
     for url in urls_to_visit:
       if url not in visited_urls:
-        lock.acquire()
-        visited_urls.append(url) 
-        urls_to_visit.remove(url)
-        lock.release()
-
-        html = self.get_html(url)
-        if html != "failed":
-          links = self.get_links(html)
-          
-          lock.acquire()
-          urls_to_visit.extend(links)
-          lock.release()
+        print(url)
+        self.run(url)
 
 urls = [
   "https://google.com",
