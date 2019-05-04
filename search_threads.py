@@ -4,19 +4,16 @@ import sys
 import signal
 import bs4
 import urllib.parse
-from treelib import Node, Tree
+from threading import RLock, Thread, get_ident
 
-# Stop ctrl-c, program quit errors
-signal.signal(signal.SIGINT, lambda x,y: sys.exit(0))
+lock = RLock()
+visited_urls = []
+urls_to_visit = []
+max_depth = 200
 
 class Search:
-  visited_urls = Tree()
-  urls_to_visit = []
-  depth = 1
-
-  def start(self, start_url, depth):
+  def start(self, start_url):
     initial_url = self.validate_url(start_url)
-    self.depth = depth
     self.run(initial_url, initial=True)
     self.loop()
 
@@ -31,10 +28,10 @@ class Search:
       req_time = resp.elapsed.total_seconds()
       html = resp.text
 
+      print("FROM: " + str(get_ident()))
       print(url + ": " + str(req_time))
       return html    
     except Exception as e:
-      print(e)
       return 'failed'
         
   def get_links(self, html, parent):
@@ -50,7 +47,6 @@ class Search:
       # if url in form '/blog'
       if len(stripped_link) >= 1 and stripped_link[0] == '/':
         if parent[-1] == '/':
-          # remove extra /
           stripped_link = parent + stripped_link[1:]
         
         stripped_link = parent + stripped_link
@@ -64,8 +60,8 @@ class Search:
     return urllib.parse.urljoin(url, urllib.parse.urlparse(url).path)
   
   def run(self, url, initial=False):
-    urls_to_visit = self.urls_to_visit
-    visited_urls = self.visited_urls
+    global urls_to_visit
+    global visited_urls
 
     if initial:
       url = {
@@ -76,29 +72,47 @@ class Search:
     html = self.get_html(url["url"])
 
     if html != "failed":
-      links = self.get_links(html, url["url"])
+      links = self.get_links(html, url["source"])
       links_dict = [{ 
         "url": link, 
-        "source": url["url"]
+        "source": link
       } for link in links]
 
-      visited_urls.create_node(
-        url["url"], # name
-        url["url"], # value
-        parent=None if initial else url["source"] # parent or root
-      )
-
+      lock.acquire()  
+      visited_urls.append(url)
       url in urls_to_visit and urls_to_visit.remove(url) 
       urls_to_visit.extend(links_dict)
+      lock.release()
 
   def loop(self):
-    for url in self.urls_to_visit:
-      if self.visited_urls.depth() == self.depth:
-        break
+    global urls_to_visit
+    global visited_urls
+    global max_depth
 
-      if not self.visited_urls.contains(url["url"]):
+    for url in urls_to_visit:
+      if url not in visited_urls and max_depth > 0:
         self.run(url)
-        self.visited_urls.show()
+        max_depth -= 1
 
-s = Search()
-s.start('https://google.com', 2)
+urls = [
+  "https://google.com",
+  "https://fb.com",
+  "https://youtube.com",
+  "https://apple.com",
+  "https://bbc.co.uk",
+  "https://repl.it",
+  "https://example.com",
+  "https://news.ycombinator.com",
+]
+threads = []
+for i in range(0, 8):
+  search = Search() 
+  thread = Thread(target=search.start, args=(urls[i],))
+  threads.append(thread)
+  threads[i].start()
+
+for thread in threads:
+  thread.join()
+
+# Stop ctrl-c, program quit errors
+signal.signal(signal.SIGINT, lambda x,y: sys.exit(0))
