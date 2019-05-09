@@ -1,13 +1,11 @@
-FROM ubuntu:18.10
-RUN apt-get update -y && \
-    apt-get install -y python3 python3-dev python3-pip
+FROM python:3.7
 
-ENV LC_ALL=C.UTF-8
-ENV LANG=C.UTF-8
+ENV APP_HOME /app
+ENV PORT 8080
 
 COPY ./requirements.txt /app/requirements.txt
-WORKDIR /app
+WORKDIR $APP_HOME
 RUN pip3 install -r requirements.txt
 COPY . /app
 
-CMD ["flask", "run", "--host=0.0.0.0"]
+CMD exec gunicorn --bind 0.0.0.0:$PORT --workers 1 --threads 8 app:app

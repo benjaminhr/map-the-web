@@ -51,8 +51,10 @@ class Search:
 
   def loop(self):
     for url in self.urls_to_visit:
+      # stop execution, and return json tree
       if self.visited_urls.depth() == self.depth + 1:
-        return self.visited_urls.to_json()
+        json_tree = self.visited_urls.to_json()
+        return json_tree
 
       if not self.visited_urls.contains(url["url"]):
         self.run(url)
