@@ -1,0 +1,12 @@
+steps:
+  # build the container image
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['build', '-t', 'gcr.io/phrasal-period-239621/map-the-web', '.']
+  # push the container image to Container Registry
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['push', 'gcr.io/phrasal-period-239621/map-the-web']
+  # Deploy container image to Cloud Run
+- name: 'gcr.io/cloud-builders/gcloud'
+  args: ['beta', 'run', 'deploy', 'map-the-web', '--image', 'gcr.io/phrasal-period-239621/map-the-web', '--region', 'us-central1']
+images:
+- gcr.io/phrasal-period-239621/map-the-web
