@@ -1,5 +1,7 @@
 # map-the-web
 
+Deployed with Google Cloud Run + Google Cloud Build
+
 To get started:
   - `source bin/active`
   - `flask run --host=0.0.0.0`
