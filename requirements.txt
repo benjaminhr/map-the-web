@@ -1,8 +1,7 @@
 beautifulsoup4==4.7.1
-certifi==2019.3.9
-chardet==3.0.4
-idna==2.8
+Flask==1.0.2
+Flask-Cors==3.0.7
 requests==2.21.0
-soupsieve==1.9.1
 treelib==1.5.5
-urllib3==1.24.3
+urllib3==1.24.1
+validators==0.12.5
