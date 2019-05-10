@@ -1,7 +1,7 @@
 FROM python:3.7
 
 ENV APP_HOME /app
-ENV PORT 8080
+ENV PORT 5000
 
 COPY ./requirements.txt /app/requirements.txt
 WORKDIR $APP_HOME

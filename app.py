@@ -37,7 +37,7 @@ def search():
 
   return "You did not specify a url in request body."
 
-@app.route('/ping', methods=['GET'])
+@app.route('/ping', methods=['GET', 'POST'])
 def ping():
   return 'pong'
 
