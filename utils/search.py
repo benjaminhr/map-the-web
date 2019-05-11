@@ -3,23 +3,36 @@ import re
 import sys
 import urllib.parse
 import bs4
-import json     
 import validators
+import queue 
 from treelib import Node, Tree
+from threading import Lock, Thread
 
 class Search:
-  visited_urls = None
-  urls_to_visit = []
+  lock = None
   depth = 1
+  visited_urls = None
+  urls_to_visit = None
 
   def start(self, start_url, depth):
-    self.visited_urls = Tree()
-    self.urls_to_visit = []
+    self.lock = Lock()
     self.depth = depth
+    self.visited_urls = Tree()
+    self.urls_to_visit = queue.Queue()
 
     initial_url = self.validate_url(start_url)
     self.run(initial_url, initial=True)
-    return self.loop()
+    
+    threads = []
+    for i in range(0, 10):
+      thread = Thread(target=self.loop)
+      threads.append(thread)
+      threads[i].start()
+
+    for thread in threads:
+      thread.join()
+
+    return self.visited_urls.to_json()
 
   def run(self, url, initial=False):
     urls_to_visit = self.urls_to_visit
@@ -35,29 +48,30 @@ class Search:
 
     if html != "failed":
       links = self.get_links(html, url["url"])
-      links_dict = [{ 
-        "url": link, 
-        "source": url["url"]
-      } for link in links]
+      
+      self.lock.acquire()
+      for link in links:
+        self.urls_to_visit.put({ 
+          "url": link, 
+          "source": url["url"]
+        }) 
 
-      visited_urls.create_node(
-        url["url"], # name
-        url["url"], # value
-        parent=None if initial else url["source"] # root or parent
-      )
-
-      url in urls_to_visit and urls_to_visit.remove(url) 
-      urls_to_visit.extend(links_dict)
+      if not self.visited_urls.contains(url["url"]):  
+        visited_urls.create_node(
+          url["url"], # name
+          url["url"], # value
+          parent=None if initial else url["source"] # root or parent
+        )
+      self.lock.release()
 
   def loop(self):
-    for url in self.urls_to_visit:
+    while not self.urls_to_visit.empty():
       # stop execution, and return json tree
       if self.visited_urls.depth() == self.depth + 1:
-        json_tree = self.visited_urls.to_json()
-        return json_tree
+        break
 
-      if not self.visited_urls.contains(url["url"]):
-        self.run(url)
+      url = self.urls_to_visit.get()
+      self.run(url)
 
   def validate_url(self, url):
     if not validators.url(url):
