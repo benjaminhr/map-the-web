@@ -20,10 +20,12 @@
   "devDependencies": {
     "@types/cheerio": "^0.22.21",
     "@types/node-fetch": "^2.5.7",
+    "@types/ws": "^7.2.6",
     "typescript": "^4.0.2"
   },
   "dependencies": {
     "cheerio": "^1.0.0-rc.3",
-    "node-fetch": "^2.6.0"
+    "node-fetch": "^2.6.0",
+    "ws": "^7.3.1"
   }
 }
