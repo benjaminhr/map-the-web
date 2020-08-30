@@ -1,0 +1,29 @@
+{
+  "name": "map-the-web",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/benjaminhr/map-the-web.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/benjaminhr/map-the-web/issues"
+  },
+  "homepage": "https://github.com/benjaminhr/map-the-web#readme",
+  "devDependencies": {
+    "@types/cheerio": "^0.22.21",
+    "@types/node-fetch": "^2.5.7",
+    "typescript": "^4.0.2"
+  },
+  "dependencies": {
+    "cheerio": "^1.0.0-rc.3",
+    "node-fetch": "^2.6.0"
+  }
+}
